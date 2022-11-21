@@ -19,6 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 from sklearn import preprocessing
 from sklearn import model_selection
+from sklearn import metrics
 # You can import whatever standard packages are required
 
 # full sklearn, full pytorch, pandas, matplotlib, numpy are all available
