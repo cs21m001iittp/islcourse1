@@ -142,32 +142,34 @@ def get_paramgrid_rf():
   # write your code here...
   return rf_param_grid
 
-def perform_gridsearch_cv_multimetric(model1=None, param_grid=None, cv=5, X=None, y=None, metrics=['accuracy','roc_auc_ovo', 'roc_auc_ovr']):
+def perform_gridsearch_cv_multimetric(model=None, param_grid=None, cv=5, X=None, y=None, metrics=['accuracy','roc_auc']):
   
   # you need to invoke sklearn grid search cv function
   # refer to sklearn documentation
   # the cv parameter can change, ie number of folds  
   
   # metrics = [] the evaluation program can change what metrics to choose
-  
+
   # create a grid search cv object
   # fit the object on X and y input above
   # write your code here...
-  grid_search_cv = None
-  grid_search_cv = model_selection.GridSearchCV(model1, param_grid, cv=cv, scoring=metrics, refit=False).fit(X, y)
-  cv_results = grid_search_cv.cv_results_
+  
   # metric of choice will be asked here, refer to the-scoring-parameter-defining-model-evaluation-rules of sklearn documentation
-
+  
   # refer to cv_results_ dictonary
   # return top 1 score for each of the metrics given, in the order given in metrics=... list
   
   top1_scores = []
-
-  for metric in metrics:
-    i = list(cv_results[f'rank_test_{metric}']).index(1)
-    top_score = list(cv_results[f'mean_test_{metric}'])[i]
-    top1_scores.append(top_score)
   
+  if X.ndim > 2:
+      n_samples = len(X)
+      X= X.reshape((n_samples, -1))
+      
+  for score in metrics:
+      grid_search_cv = GridSearchCV(model,param_grid,scoring = score,cv=cv)
+      grid_search_cv.fit(X,y)
+      top1_scores.append(grid_search_cv.best_estimator_.get_params())
+      
   return top1_scores
 
 
