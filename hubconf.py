@@ -4,7 +4,11 @@
 import torch
 from torch import nn
 import torch.optim as optim
+import sklearn
 
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
 from sklearn.datasets import make_blobs
 from sklearn.datasets import make_circles, load_digits
 from sklearn.cluster import KMeans
