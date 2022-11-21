@@ -1,9 +1,9 @@
-
 #endsem
 # Importing libraries
 import torch
 from torch import nn
 import torch.optim as optim
+
 import sklearn
 
 from sklearn.model_selection import GridSearchCV
@@ -17,16 +17,19 @@ from sklearn.metrics.cluster import homogeneity_score,completeness_score,v_measu
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
+from sklearn import metrics
 from sklearn import preprocessing
 from sklearn import model_selection
-from sklearn import metrics
+from torchvision.transforms import ToTensor
+import torch.nn.functional as Fun
 # You can import whatever standard packages are required
 
 # full sklearn, full pytorch, pandas, matplotlib, numpy are all available
 # Ideally you do not need to pip install any other packages!
 # Avoid pip install requirement on the evaluation program side, if you use above packages and sub-packages of them, then that is fine!
 
-###### PART 1 ######
+device = "cuda" if torch.cuda.is_available() else "cpu"
+###### PART 1 #######
 
 def get_data_blobs(n_points=100):
   pass
@@ -38,37 +41,22 @@ def get_data_blobs(n_points=100):
 
 def get_data_circles(n_points=100):
   pass
-  # write your code here
-  # Refer to sklearn data sets
   X, y = make_circles(n_samples = n_points)
-  # write your code ...
   return X,y
 
 def get_data_mnist():
-  
-  # write your code here
-  # Refer to sklearn data sets
-  
   digits= load_digits()
   X = digits.data
   y = digits.target
-  
-  # write your code ...
   return X,y
 
 def build_kmeans(X=None,k=10):
   pass
-  # k is a variable, calling function can give a different number
-  # Refer to sklearn KMeans method
   km = KMeans(n_clusters=k).fit(X)
-  # write your code ...
   return km
 
 def assign_kmeans(km=None,X=None):
   pass
-  # For each of the points in X, assign one of the means
-  # refer to predict() function of the KMeans in sklearn
-  # write your code ...
   ypred = km.predict(X)
   return ypred
 
@@ -79,8 +67,7 @@ def compare_clusterings(ypred_1=None,ypred_2=None):
   v=v_measure_score(ypred_1,ypred_2)
   return h,c,v
 
-###### PART 2 ######
-
+#####part2########
 def build_lr_model(X=None, y=None):
   # write your code...
   # Build logistic regression, refer to sklearn
@@ -174,21 +161,20 @@ def perform_gridsearch_cv_multimetric(model=None, param_grid=None, cv=5, X=None,
 
 
 
-#####Part3######
+  ##########part 3########
 class MyNN(nn.Module):
   def __init__(self,inp_dim=64,hid_dim=13,num_classes=10):
-    super(MyNN,self).__init__()
+    super(MyNN,self)
     
-    self.flat = nn.Flatten()
-    self.fc_encoder = nn.Linear(inp_dim,hid_dim).to(device) # write your code inp_dim to hid_dim mapper
-    self.fc_decoder = nn.Linear(hid_dim,inp_dim).to(device) # write your code hid_dim to inp_dim mapper
-    self.fc_classifier = nn.Linear(hid_dim,num_classes).to(device) # write your code to map hid_dim to num_classes
+    self.fc_encoder = nn.Linear(inp_dim, hid_dim) 
+    self.fc_decoder = nn.Linear(hid_dim, inp_dim) 
+    self.fc_classifier = nn.Linear(hid_dim, num_classes) 
     
     self.relu = nn.ReLU() #write your code - relu object
-    self.softmax = nn.Softmax() #write your code - softmax object
+    self.softmax = nn.Softmax(dim=1) #write your code - softmax object
     
   def forward(self,x):
-    x = self.flat(x) # write your code - flatten x
+    x = nn.Flatten() # write your code - flatten x
     x_enc = self.fc_encoder(x)
     x_enc = self.relu(x_enc)
     
@@ -198,44 +184,52 @@ class MyNN(nn.Module):
     x_dec = self.fc_decoder(x_enc)
     
     return y_pred, x_dec
- 
-
-# This a multi component loss function - lc1 for class prediction loss and lc2 for auto-encoding loss
-def loss_fn(self,x,yground,y_pred,xencdec):
+  
+  # This a multi component loss function - lc1 for class prediction loss and lc2 for auto-encoding loss
+  def loss_fn(self,x,yground,y_pred,xencdec):
     
     # class prediction loss
     # yground needs to be one hot encoded - write your code
-    # write your code for cross entropy between yground and y_pred, advised to use torch.mean()
-    classes = set()
-    for i in yground:
-      classes.add(i)
-    num_classes = len(classes)
-    tmp = Fun.one_hot(yground, num_classes= num_classes).to(device)
+    lc1 = None # write your code for cross entropy between yground and y_pred, advised to use torch.mean()
     
-    y_pred , tmp = y_pred.to(device) , tmp.to(device)
-    v = -(tmp * torch.log(y_pred + 0.0001))
-    lc1 = torch.mean(v)
-
-
     # auto encoding loss
     lc2 = torch.mean((x - xencdec)**2)
     
     lval = lc1 + lc2
     
     return lval
-
- 
+    
 def get_mynn(inp_dim=64,hid_dim=13,num_classes=10):
   mynn = MyNN(inp_dim,hid_dim,num_classes)
   mynn.double()
   return mynn
 
-def get_mnist_tensor():
-  # download sklearn mnist
-  # convert to tensor
-  X_np, y_np = get_data_mnist()
 
-  X = torch.tensor(X_np)
-  y = torch.tensor(y_np)
+def get_mnist_tensor():
+  X, y = None, None
   # write your code
-  return X
+  return X,y
+
+
+def get_loss_on_single_point(mynn=None,x0,y0):
+  y_pred, xencdec = mynn(x0)
+  lval = mynn.loss_fn(x0,y0,y_pred,xencdec)
+  # the lossval should have grad_fn attribute set
+  return lval
+
+
+def train_combined_encdec_predictor(mynn=None,X,y, epochs=11):
+  # X, y are provided as tensor
+  # perform training on the entire data set (no batches etc.)
+  # for each epoch, update weights
+  
+  optimizer = optim.SGD(mynn.parameters(), lr=0.01)
+  
+  for i in range(epochs):
+    optimizer.zero_grad()
+    ypred, Xencdec = mynn(X)
+    lval = mynn.loss_fn(X,y,ypred,Xencdec)
+    lval.backward()
+    optimizer.step()
+    
+  return mynn
