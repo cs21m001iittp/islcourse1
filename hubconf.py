@@ -176,17 +176,16 @@ class MyNN(nn.Module):
   def __init__(self,inp_dim=64,hid_dim=13,num_classes=10):
     super(MyNN,self).__init__()
     
-    self.num_classes = num_classes
-
-    self.fc_encoder = nn.Linear(inp_dim, hid_dim) # write your code inp_dim to hid_dim mapper
-    self.fc_decoder = nn.Linear(hid_dim, inp_dim) # write your code hid_dim to inp_dim mapper
-    self.fc_classifier = nn.Linear(hid_dim, num_classes) # write your code to map hid_dim to num_classes
+    self.flat = nn.Flatten()
+    self.fc_encoder = nn.Linear(inp_dim,hid_dim).to(device) # write your code inp_dim to hid_dim mapper
+    self.fc_decoder = nn.Linear(hid_dim,inp_dim).to(device) # write your code hid_dim to inp_dim mapper
+    self.fc_classifier = nn.Linear(hid_dim,num_classes).to(device) # write your code to map hid_dim to num_classes
     
     self.relu = nn.ReLU() #write your code - relu object
-    self.softmax = nn.Softmax(dim=1) #write your code - softmax object
+    self.softmax = nn.Softmax() #write your code - softmax object
     
   def forward(self,x):
-    x = nn.Flatten()(x) # write your code - flatten x
+    x = self.flat(x) # write your code - flatten x
     x_enc = self.fc_encoder(x)
     x_enc = self.relu(x_enc)
     
@@ -196,22 +195,33 @@ class MyNN(nn.Module):
     x_dec = self.fc_decoder(x_enc)
     
     return y_pred, x_dec
-  
-  # This a multi component loss function - lc1 for class prediction loss and lc2 for auto-encoding loss
-  def loss_fn(self,x,yground,y_pred,xencdec):
+ 
+
+# This a multi component loss function - lc1 for class prediction loss and lc2 for auto-encoding loss
+def loss_fn(self,x,yground,y_pred,xencdec):
     
     # class prediction loss
     # yground needs to be one hot encoded - write your code
-    yground_1h = nn.functional.one_hot(yground, num_classes=self.num_classes)
-
     # write your code for cross entropy between yground and y_pred, advised to use torch.mean()
-    lc1 = -torch.mean(yground_1h*torch.log(y_pred+0.00001))
+    classes = set()
+    for i in yground:
+      classes.add(i)
+    num_classes = len(classes)
+    tmp = Fun.one_hot(yground, num_classes= num_classes).to(device)
+    
+    y_pred , tmp = y_pred.to(device) , tmp.to(device)
+    v = -(tmp * torch.log(y_pred + 0.0001))
+    lc1 = torch.mean(v)
+
+
     # auto encoding loss
     lc2 = torch.mean((x - xencdec)**2)
     
     lval = lc1 + lc2
-    return lval
     
+    return lval
+
+ 
 def get_mynn(inp_dim=64,hid_dim=13,num_classes=10):
   mynn = MyNN(inp_dim,hid_dim,num_classes)
   mynn.double()
@@ -220,34 +230,9 @@ def get_mynn(inp_dim=64,hid_dim=13,num_classes=10):
 def get_mnist_tensor():
   # download sklearn mnist
   # convert to tensor
-  X, y = None, None
-  X, y = get_data_mnist()
-  X, y = torch.tensor(X), torch.tensor(y)
+  X_np, y_np = get_data_mnist()
+
+  X = torch.tensor(X_np)
+  y = torch.tensor(y_np)
   # write your code
-  return X,y
-
-def get_loss_on_single_point(mynn, x0, y0):
-  X0 = torch.unsqueeze(x0, dim=0)   
-  Y0 = torch.unsqueeze(y0, dim=0)
-
-  y_pred, xencdec = mynn(X0)
-  lossval = mynn.loss_fn(X0,Y0,y_pred,xencdec)
-  # the lossval should have grad_fn attribute set
-  return lossval
-
-def train_combined_encdec_predictor(mynn, X, y, epochs=11):
-  # X, y are provided as tensor
-  # perform training on the entire data set (no batches etc.)
-  # for each epoch, update weights
-  
-  optimizer = optim.SGD(mynn.parameters(), lr=0.01)
-  
-  for i in range(epochs):
-    optimizer.zero_grad()
-    ypred, Xencdec = mynn(X)
-    lval = mynn.loss_fn(X,y,ypred,Xencdec)
-    lval.backward()
-    optimizer.step()
-    print(f"Epoch {i+1}: ", lval.item())
-    
-  return mynn
+  return X
