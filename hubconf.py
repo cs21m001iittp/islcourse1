@@ -75,3 +75,72 @@ def compare_clusterings(ypred_1=None,ypred_2=None):
 
 ###### PART 2 ######
 
+def build_lr_model(X=None, y=None):
+  lr_model = LogisticRegression()
+  # write your code...
+  # Build logistic regression, refer to sklearn
+  if X.ndim > 2:
+      n_samples = len(X)
+      X= X.reshape((n_samples, -1))
+  lr_model.fit(X,y)
+  return lr_model
+
+def build_rf_model(X=None, y=None):
+  rf_model = RandomForestClassifier()
+  # write your code...
+  # Build Random Forest classifier, refer to sklearn
+  if X.ndim > 2:
+      n_samples = len(X)
+      X= X.reshape((n_samples, -1))
+  rf_model.fit(X,y)
+  return rf_model
+
+
+def get_metrics(model=None,X=None,y=None):
+  # Obtain accuracy, precision, recall, f1score, auc score - refer to sklearn metrics
+  
+  if X.ndim > 2:
+      n_samples = len(X)
+      X= X.reshape((n_samples, -1))
+  classes = set()
+  for i in y:
+      classes.add(i)
+  num_classes = len(classes)
+
+  ypred = model.predict(X)
+  acc, prec, rec, f1, auc = 0,0,0,0,0
+  # write your code here...
+  acc = accuracy_score(y,ypred)
+  if num_classes == 2:
+    prec = precision_score(y,ypred)
+    recall = recall_score(y,ypred)
+    f1 = f1_score(y,ypred)
+    auc = roc_auc_score(y,ypred)
+
+  else:
+    prec = precision_score(y,ypred,average='macro')
+    recall = recall_score(y,ypred,average='macro')
+    f1 = f1_score(y,ypred,average='macro')
+    pred_prob = model.predict_proba(X)
+    roc_auc_score(y, pred_prob, multi_class='ovr')
+    #auc = roc_auc_score(y,ypred,average='macro',multi_class='ovr')
+
+  return acc, prec, rec, f1, auc
+
+def get_paramgrid_lr():
+  # you need to return parameter grid dictionary for use in grid search cv
+  # penalty: l1 or l2
+  lr_param_grid = {'penalty' : ['l1','l2']}
+  # refer to sklearn documentation on grid search and logistic regression
+  # write your code here...
+  return lr_param_grid
+
+def get_paramgrid_rf():
+  # you need to return parameter grid dictionary for use in grid search cv
+  # n_estimators: 1, 10, 100
+  # criterion: gini, entropy
+  # maximum depth: 1, 10, None  
+  rf_param_grid = { 'n_estimators' : [1,10,100],'criterion' :["gini", "entropy"], 'max_depth' : [1,10,None]  }
+  # refer to sklearn documentation on grid search and random forest classifier
+  # write your code here...
+  return rf_param_grid
